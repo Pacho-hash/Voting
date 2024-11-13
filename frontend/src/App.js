@@ -10,29 +10,51 @@ function App() {
 
   useEffect(() => {
     const loadBlockchainData = async () => {
-      const web3 = new Web3(Web3.givenProvider || "http://localhost:7545");
-      const accounts = await web3.eth.requestAccounts();
-      setAccount(accounts[0]);
-
-      const networkId = await web3.eth.net.getId();
-      const deployedNetwork = Voting.networks[networkId];
-      const contract = new web3.eth.Contract(Voting.abi, deployedNetwork && deployedNetwork.address);
-      setVotingContract(contract);
-
-      const candidatesCount = await contract.methods.candidatesCount().call();
-      const candidatesArray = [];
-      for (let i = 1; i <= candidatesCount; i++) {
-        const candidate = await contract.methods.candidates(i).call();
-        candidatesArray.push(candidate);
+      try {
+        if (window.ethereum) {
+          const web3 = new Web3(window.ethereum);
+          await window.ethereum.request({ method: 'eth_requestAccounts' });
+          const accounts = await web3.eth.getAccounts();
+          setAccount(accounts[0]);
+  
+          const networkId = await web3.eth.net.getId();
+          if (networkId !== 5777) { // Ensure this matches the network ID in truffle-config.js
+            console.error("Please connect to the correct network");
+            return;
+          }
+  
+          const deployedNetwork = Voting.networks[networkId];
+          if (deployedNetwork) {
+            const contract = new web3.eth.Contract(Voting.abi, deployedNetwork.address);
+            setVotingContract(contract);
+  
+            const candidatesCount = await contract.methods.candidatesCount().call();
+            const candidatesArray = [];
+            for (let i = 1; i <= candidatesCount; i++) {
+              const candidate = await contract.methods.candidates(i).call();
+              candidatesArray.push(candidate);
+            }
+            setCandidates(candidatesArray);
+          } else {
+            console.error("Smart contract not deployed to detected network.");
+          }
+        } else {
+          console.error("Ethereum wallet not detected.");
+        }
+      } catch (error) {
+        console.error("Error loading blockchain data:", error);
       }
-      setCandidates(candidatesArray);
     };
     loadBlockchainData();
   }, []);
 
   const vote = async (candidateId) => {
-    await votingContract.methods.vote(candidateId).send({ from: account });
-    window.location.reload();
+    try {
+      await votingContract.methods.vote(candidateId).send({ from: account });
+      window.location.reload();
+    } catch (error) {
+      console.error("Error voting:", error);
+    }
   };
 
   return (
@@ -54,4 +76,3 @@ function App() {
 }
 
 export default App;
-```
