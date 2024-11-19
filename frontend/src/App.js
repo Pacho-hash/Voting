@@ -16,18 +16,19 @@ function App() {
           await window.ethereum.request({ method: 'eth_requestAccounts' });
           const accounts = await web3.eth.getAccounts();
           setAccount(accounts[0]);
-  
+    
           const networkId = await web3.eth.net.getId();
-          if (networkId !== 5777) { // Ensure this matches the network ID in truffle-config.js
+          console.log("Network ID:", networkId); // Log the network ID
+          if (parseInt(networkId) !== 5777) { // Ensure this compares the network ID as a number
             console.error("Please connect to the correct network");
             return;
           }
-  
+    
           const deployedNetwork = Voting.networks[networkId];
           if (deployedNetwork) {
             const contract = new web3.eth.Contract(Voting.abi, deployedNetwork.address);
             setVotingContract(contract);
-  
+    
             const candidatesCount = await contract.methods.candidatesCount().call();
             const candidatesArray = [];
             for (let i = 1; i <= candidatesCount; i++) {
