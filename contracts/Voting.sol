@@ -9,7 +9,6 @@ contract Voting {
     }
 
     mapping(uint => Candidate) public candidates;
-    mapping(address => bool) public voters;
     uint public candidatesCount;
 
     event VotedEvent(uint indexed candidateId);
@@ -25,10 +24,8 @@ contract Voting {
     }
 
     function vote(uint _candidateId) public {
-        require(!voters[msg.sender], "You have already voted.");
         require(_candidateId > 0 && _candidateId <= candidatesCount, "Invalid candidate.");
 
-        voters[msg.sender] = true;
         candidates[_candidateId].voteCount++;
 
         emit VotedEvent(_candidateId);
