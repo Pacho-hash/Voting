@@ -22,6 +22,7 @@
   justify-content: center;
   font-size: calc(10px + 2vmin);
   color: white;
+  padding: 20px;
 }
 
 .App-link {
@@ -35,4 +36,40 @@
   to {
     transform: rotate(360deg);
   }
+}
+
+.account-info {
+  position: absolute;
+  top: 0;
+  left: 0;
+  margin: 10px;
+  font-size: 0.8rem;
+}
+
+.card-title {
+  font-size: 1.2rem;
+  display: flex;
+  align-items: center;
+}
+
+.candidate-logo {
+  width: 40px;
+  height: 40px;
+  margin-right: 10px;
+}
+
+button {
+  margin-top: 10px;
+}
+
+.large-progress-bar {
+  width: 200px;
+  height: 200px;
+  margin: 0 auto;
+}
+
+.small-progress-bar {
+  width: 100px;
+  height: 100px;
+  margin: 0 auto;
 }

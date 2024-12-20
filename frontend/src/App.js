@@ -2,11 +2,10 @@ import React, { useEffect, useState } from 'react';
 import Web3 from 'web3';
 import Voting from './contracts/Voting.json';
 import 'bootstrap/dist/css/bootstrap.min.css';
-import { Container, Row, Col, Button, Card, ProgressBar, Image } from 'react-bootstrap';
+import { Container, Row, Col, Button, Card, ProgressBar, Image, Form } from 'react-bootstrap';
 import { CircularProgressbar, buildStyles } from 'react-circular-progressbar';
 import 'react-circular-progressbar/dist/styles.css';
 import './App.css';
-import io from 'socket.io-client';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
@@ -14,7 +13,7 @@ function App() {
   const [candidates, setCandidates] = useState([]);
   const [account, setAccount] = useState('');
   const [votingContract, setVotingContract] = useState(null);
-  const socket = io('http://localhost:4000'); // Update with your server URL
+  const [secret, setSecret] = useState('');
 
   useEffect(() => {
     const loadBlockchainData = async () => {
@@ -31,19 +30,8 @@ function App() {
             const contract = new web3.eth.Contract(Voting.abi, deployedNetwork.address);
             setVotingContract(contract);
 
-            const candidatesCount = await contract.methods.candidatesCount().call();
-            const candidatesArray = [];
-            for (let i = 1; i <= candidatesCount; i++) {
-              const candidate = await contract.methods.candidates(i).call();
-              candidate.logoUrl = `./logos/logo${i}.png`;
-              candidatesArray.push(candidate);
-            }
-            setCandidates(candidatesArray);
-
-            socket.on('voteUpdate', (updatedCandidates) => {
-              setCandidates(updatedCandidates);
-              toast.info('Vote count updated!');
-            });
+            fetchCandidatesData(contract);
+            setInterval(() => fetchCandidatesData(contract), 1000); // Poll every 5 seconds
           } else {
             console.error("Smart contract not deployed to detected network.");
           }
@@ -54,13 +42,24 @@ function App() {
         console.error("Error loading blockchain data:", error);
       }
     };
+
+    const fetchCandidatesData = async (contract) => {
+      const candidatesCount = await contract.methods.candidatesCount().call();
+      const candidatesArray = [];
+      for (let i = 1; i <= candidatesCount; i++) {
+        const candidate = await contract.methods.candidates(i).call();
+        candidate.logoUrl = `./logos/logo${i}.png`;
+        candidatesArray.push(candidate);
+      }
+      setCandidates(candidatesArray);
+    };
+
     loadBlockchainData();
   }, []);
 
   const vote = async (candidateId) => {
     try {
       await votingContract.methods.vote(candidateId).send({ from: account });
-      socket.emit('voteCasted', candidateId);
       toast.success('Vote casted successfully!');
     } catch (error) {
       console.error("Error voting:", error);
@@ -68,8 +67,18 @@ function App() {
     }
   };
 
+  const resetVotes = async () => {
+    try {
+      await votingContract.methods.resetVotes(secret).send({ from: account });
+      toast.success('Votes have been reset');
+    } catch (error) {
+      console.error("Error resetting votes:", error);
+      toast.error('Error resetting votes');
+    }
+  };
+
   const totalVotes = candidates.reduce((sum, candidate) => sum + Number(candidate.voteCount), 0);
-  const colors = ['#ff6347', '#ff69b4', '#ffa500', '#1e90ff', '#32cd32'];
+  const colors = ['#ff6347', '#ff69b4', '#ffa500', ];
 
   return (
     <Container className="App">
@@ -132,6 +141,12 @@ function App() {
               </div>
             </Col>
           ))}
+        </Row>
+        <Row className="my-4">
+          <Col>
+            <Form.Control type="text" placeholder="Enter secret word" value={secret} onChange={(e) => setSecret(e.target.value)} />
+            <Button className="mt-2" variant="primary" onClick={resetVotes}>Reset Votes</Button>
+          </Col>
         </Row>
       </header>
     </Container>
